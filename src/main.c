@@ -48,6 +48,16 @@ void init_game(Game* game) {
     }
 
     game->state = STATE_MENU;
+
+    game->ship_config[0].size = 4;
+    game->ship_config[0].count = 1;
+    game->ship_config[1].size = 3;
+    game->ship_config[1].count = 1;
+    game->ship_config[2].size = 2;
+    game->ship_config[2].count = 1;
+    game->ship_config[3].size = 1;
+    game->ship_config[3].count = 1;
+    game->total_ships = 4;
 }
 
 void cleanup_game(Game* game) {
@@ -83,6 +93,8 @@ int main(int argc, char* argv[]) {
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     if (game.state == STATE_MENU) {
                         handle_menu_click(&game, mouse_x, mouse_y);
+                    } else if (game.state == STATE_CONFIG) {
+                        handle_config_click(&game, mouse_x, mouse_y);
                     } else if (game.state == STATE_SETUP_P1 || game.state == STATE_SETUP_P2) {
                         handle_setup_click(&game, mouse_x, mouse_y);
                     } else if (game.state == STATE_GAME) {
@@ -91,6 +103,12 @@ int main(int argc, char* argv[]) {
                         if (mouse_x >= WINDOW_WIDTH/2 - 150 && mouse_x < WINDOW_WIDTH/2 + 150 &&
                             mouse_y >= 300 && mouse_y < 360) {
                             game.state = STATE_MENU;
+
+                            game.ship_config[0].count = 1;
+                            game.ship_config[1].count = 1;
+                            game.ship_config[2].count = 1;
+                            game.ship_config[3].count = 1;
+                            game.total_ships = 4;
                         }
                     }
                 }
@@ -103,12 +121,11 @@ int main(int argc, char* argv[]) {
                     if (game.state == STATE_SETUP_P1 || game.state == STATE_SETUP_P2) {
                         Player* player = (game.state == STATE_SETUP_P1) ? &game.player1 : &game.player2;
                         init_field(player->field);
-                        ai_place_ships(player);
-                        game.current_ship = SHIPS_COUNT;
+                        ai_place_ships(player, game.ship_config, game.config_count);
+                        player->ships_count = game.total_ships;
+                        game.current_ship = game.total_ships;
 
                         if (game.state == STATE_SETUP_P1 && game.mode == MODE_PVP) {
-                            init_field(game.player2.field);
-                            init_field(game.player2.enemy_view);
                             game.state = STATE_SETUP_P2;
                             game.current_ship = 0;
                         } else {
@@ -136,6 +153,8 @@ int main(int argc, char* argv[]) {
 
         if (game.state == STATE_MENU) {
             render_menu(&game, mouse_x, mouse_y);
+        } else if (game.state == STATE_CONFIG) {
+            render_config(&game, mouse_x, mouse_y);
         } else if (game.state == STATE_SETUP_P1 || game.state == STATE_SETUP_P2) {
             render_setup(&game, mouse_x, mouse_y);
         } else if (game.state == STATE_GAME) {
