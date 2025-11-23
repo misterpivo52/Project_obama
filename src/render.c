@@ -154,6 +154,51 @@ void render_menu(Game* game, int mouse_x, int mouse_y) {
     draw_text_centered(game->renderer, game->font_small, "Click to place ships | R to rotate", 550, COLOR_WHITE);
 }
 
+void render_config(Game* game, int mouse_x, int mouse_y) {
+    SDL_SetRenderDrawColor(game->renderer, COLOR_BG.r, COLOR_BG.g, COLOR_BG.b, 255);
+    SDL_RenderClear(game->renderer);
+
+    draw_text_centered(game->renderer, game->font, "Configure Ships", 30, COLOR_WHITE);
+    draw_text_centered(game->renderer, game->font_small, "Choose number of ships for each type", 80, COLOR_WHITE);
+
+    char* ship_names[] = {"Battleship (4 cells)", "Cruiser (3 cells)", "Destroyer (2 cells)", "Submarine (1 cell)"};
+
+    for (int i = 0; i < 4; i++) {
+        int btn_y = 200 + i * 80;
+
+        draw_text_centered(game->renderer, game->font_small, ship_names[i], btn_y - 30, COLOR_WHITE);
+
+        Button minus_btn;
+        minus_btn.rect = (SDL_Rect){WINDOW_WIDTH/2 - 200, btn_y, 80, 60};
+        strcpy(minus_btn.text, "-");
+        minus_btn.is_hovered = (mouse_x >= minus_btn.rect.x && mouse_x < minus_btn.rect.x + minus_btn.rect.w &&
+                                mouse_y >= minus_btn.rect.y && mouse_y < minus_btn.rect.y + minus_btn.rect.h);
+        draw_button(game->renderer, game->font, &minus_btn);
+
+        char count_str[10];
+        sprintf(count_str, "%d", game->ship_config[i].count);
+        draw_text_centered(game->renderer, game->font, count_str, btn_y + 15, COLOR_WHITE);
+
+        Button plus_btn;
+        plus_btn.rect = (SDL_Rect){WINDOW_WIDTH/2 + 100, btn_y, 80, 60};
+        strcpy(plus_btn.text, "+");
+        plus_btn.is_hovered = (mouse_x >= plus_btn.rect.x && mouse_x < plus_btn.rect.x + plus_btn.rect.w &&
+                               mouse_y >= plus_btn.rect.y && mouse_y < plus_btn.rect.y + plus_btn.rect.h);
+        draw_button(game->renderer, game->font, &plus_btn);
+    }
+
+    char total_str[50];
+    sprintf(total_str, "Total ships: %d", game->total_ships);
+    draw_text_centered(game->renderer, game->font_small, total_str, 520, COLOR_WHITE);
+
+    Button start_btn;
+    start_btn.rect = (SDL_Rect){WINDOW_WIDTH/2 - 150, 550, 300, 60};
+    strcpy(start_btn.text, game->total_ships > 0 ? "Start Game" : "Select ships first");
+    start_btn.is_hovered = (mouse_x >= start_btn.rect.x && mouse_x < start_btn.rect.x + start_btn.rect.w &&
+                            mouse_y >= start_btn.rect.y && mouse_y < start_btn.rect.y + start_btn.rect.h);
+    draw_button(game->renderer, game->font_small, &start_btn);
+}
+
 void render_setup(Game* game, int mouse_x, int mouse_y) {
     SDL_SetRenderDrawColor(game->renderer, COLOR_BG.r, COLOR_BG.g, COLOR_BG.b, 255);
     SDL_RenderClear(game->renderer);
@@ -164,12 +209,21 @@ void render_setup(Game* game, int mouse_x, int mouse_y) {
     sprintf(title, "%s - Place your ships", player->name);
     draw_text_centered(game->renderer, game->font, title, 30, COLOR_WHITE);
 
-    int ship_sizes[] = {4, 3, 2, 1};
-    char* ship_names[] = {"Battleship (4)", "Cruiser (3)", "Destroyer (2)", "Submarine (1)"};
+    if (game->current_ship < game->total_ships) {
+        int current_size = 0;
+        int ships_placed = 0;
 
-    if (game->current_ship < SHIPS_COUNT) {
+        for (int cfg = 0; cfg < game->config_count; cfg++) {
+            if (game->current_ship < ships_placed + game->ship_config[cfg].count) {
+                current_size = game->ship_config[cfg].size;
+                break;
+            }
+            ships_placed += game->ship_config[cfg].count;
+        }
+
         char info[100];
-        sprintf(info, "Placing: %s | Press R to rotate | Press SPACE for random", ship_names[game->current_ship]);
+        sprintf(info, "Placing ship %d/%d (size: %d) | Press R to rotate | Press SPACE for random",
+                game->current_ship + 1, game->total_ships, current_size);
         draw_text_centered(game->renderer, game->font_small, info, 80, COLOR_WHITE);
     }
 
@@ -185,15 +239,25 @@ void render_setup(Game* game, int mouse_x, int mouse_y) {
 
     draw_field(game->renderer, game->font_small, player->field, offset_x, offset_y, 1, 1, mouse_x, mouse_y);
 
-    if (game->current_ship < SHIPS_COUNT) {
+    if (game->current_ship < game->total_ships) {
         int cell_x = (mouse_y - offset_y) / CELL_SIZE;
         int cell_y = (mouse_x - offset_x) / CELL_SIZE;
 
         if (cell_x >= 0 && cell_x < FIELD_SIZE && cell_y >= 0 && cell_y < FIELD_SIZE) {
-            int valid = can_place_ship(player->field, cell_x, cell_y,
-                                      ship_sizes[game->current_ship], !game->ship_direction);
+            int current_size = 0;
+            int ships_placed = 0;
+
+            for (int cfg = 0; cfg < game->config_count; cfg++) {
+                if (game->current_ship < ships_placed + game->ship_config[cfg].count) {
+                    current_size = game->ship_config[cfg].size;
+                    break;
+                }
+                ships_placed += game->ship_config[cfg].count;
+            }
+
+            int valid = can_place_ship(player->field, cell_x, cell_y, current_size, !game->ship_direction);
             draw_ship_preview(game->renderer, offset_x, offset_y, cell_x, cell_y,
-                            ship_sizes[game->current_ship], !game->ship_direction, valid);
+                            current_size, !game->ship_direction, valid);
         }
     }
 }

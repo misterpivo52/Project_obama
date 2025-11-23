@@ -20,6 +20,7 @@ void draw_ship_preview(SDL_Renderer* renderer, int offset_x, int offset_y,
                        int x, int y, int size, int horizontal, int valid);
 
 void render_menu(Game* game, int mouse_x, int mouse_y);
+void render_config(Game* game, int mouse_x, int mouse_y);
 void render_setup(Game* game, int mouse_x, int mouse_y);
 void render_game(Game* game, int mouse_x, int mouse_y);
 void render_game_over(Game* game, int mouse_x, int mouse_y);
