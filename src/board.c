@@ -51,23 +51,27 @@ void place_ship(Player* player, int ship_index, int x, int y, int size, int hori
     }
 }
 
-void ai_place_ships(Player* player) {
-    int ship_sizes[] = {4, 3, 2, 1};
+void ai_place_ships(Player* player, ShipConfig* config, int config_count) {
+    int ship_index = 0;
 
-    for (int ship = 0; ship < SHIPS_COUNT; ship++) {
-        int placed = 0;
-        while (!placed) {
-            int x = rand() % FIELD_SIZE;
-            int y = rand() % FIELD_SIZE;
-            int horizontal = rand() % 2;
+    for (int cfg = 0; cfg < config_count; cfg++) {
+        for (int ship_num = 0; ship_num < config[cfg].count; ship_num++) {
+            int placed = 0;
+            while (!placed) {
+                int x = rand() % FIELD_SIZE;
+                int y = rand() % FIELD_SIZE;
+                int horizontal = rand() % 2;
 
-            if (can_place_ship(player->field, x, y, ship_sizes[ship], horizontal)) {
-                place_ship(player, ship, x, y, ship_sizes[ship], horizontal);
-                placed = 1;
+                if (can_place_ship(player->field, x, y, config[cfg].size, horizontal)) {
+                    place_ship(player, ship_index, x, y, config[cfg].size, horizontal);
+                    ship_index++;
+                    placed = 1;
+                }
             }
         }
     }
-    player->ships_alive = SHIPS_COUNT;
+    player->ships_count = ship_index;
+    player->ships_alive = ship_index;
 }
 
 void mark_destroyed_area(Player* target, Player* attacker, int ship_index) {
@@ -97,7 +101,7 @@ int check_hit(Player* target, Player* attacker, int x, int y) {
     if (target->field[x][y] == SHIP) {
         target->field[x][y] = HIT;
 
-        for (int i = 0; i < SHIPS_COUNT; i++) {
+        for (int i = 0; i < target->ships_count; i++) {
             for (int j = 0; j < target->ships[i].size; j++) {
                 if (target->ships[i].x[j] == x && target->ships[i].y[j] == y) {
                     target->ships[i].hits++;
